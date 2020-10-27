@@ -1,8 +1,9 @@
+close all
 addpath('./Simulation_code');
 addpath('./Data');
 
 % Parameter initialisation
-nr = '1';           % simulation number
+nr = 1;             % simulation number
 U0 = 1e4;           % initial number of uninfected cells
 mu_array = 1e-6;    % mutation rate(s) to test
 

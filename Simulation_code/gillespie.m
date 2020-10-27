@@ -1,41 +1,98 @@
 function [data, params] = gillespie(nr, U0, mu_array)
+        %------------------------------------------------------------------
+        % Simulate a viral infection with the Gillespi algorithm.
+        
+        % INPUT PARAMETERS
+        %-----------------
+        
+        % nr: int
+        % Simulation number, used for random number generator.
+        
+        % U0: int
+        % Initial number of not-infected cells.
+        
+        % mu_array: double or array of doubles.
+        % Array with mutation rates you want to test. If you want to do one
+        % single simulation, mu_array is a single numbers.
+        
+        
+        % OUTPUT PARAMETERS
+        %-----------------
+        % data: structure array with the same length as mu_array.
+        % Structure to collect all data per mutation rate. The fields are:
+        
+        %   data_collect:   T x 6 array containing values that change over 
+        %                   time, where T is the number of timepoints in
+        %                   the simulation.
+        %                   COLUMN 1: time array.
+        %                   COLUMN 2: the total number of distinct genome
+        %                             sequences per timepoint.
+        %                   COLUMN 3: the total number of distinct protein
+        %                             sequences per timepoint.
+        %                   COLUMN 4: the total number of non-infected
+        %                             cells per timepoint (U).
+        %                   COLUMN 5: the total number of infected
+        %                             cells per timepoint (I).
+        %                   COLUMN 6: the total number free viral particles
+        %                             per timepoint (V).
+                                    
+        %   relativeY:      T x maxY array, where T is the number of
+        %                   timepoints and maxY is the maximal hamming
+        %                   distance that arose in the simulation + 1. Each
+        %                   value (t,i) in the array denotes the relative
+        %                   abundance of viruses with hamming distance i-1 
+        %                   at timepoint t.
+        
+        %   statY:          1 x maxY array with the time-integrated
+        %                   relative abundance of viruses with a hamming
+        %                   distance i-1.
+        
+        
+        %   statR:          double denoting the stationary reproduction
+        %                   rate (i.e. reproduction rate integrated over
+        %                   time).
+        
+        %   maxR:           double, maximal reproduction rate that arose in
+        %                   the simulation.
+        
+        %   diversity:      1 X T array with de diversity of the viral
+        %                   population at all T timepoints.
+        
+     	%   statDiv:        double denoting the stationary diversity (i.e.
+     	%                   the viral diversity integrated over time).
+        
+        %   statD:          double denoting the stationary hamming distance 
+        %                   (i.e. the hamming distance integrated over
+        %                   time).
+
+        %   maxD:           double, maximal hamming distance that arose in
+        %                   the simulation.
+        
+        %------------------------------------------------------------------
         
         tic
-        myStream = RandStream('mlfg6331_64', 'Seed', str2num(nr));
-
-        %% Viral evolution with Gillespie algorithm
-
-        % Source of model: 
-        % Woo & Reifman (2013). Quantitative Modeling of Virus Evolutionary
-        % Dynamics and Adaptation in Serial Passages Using Empirically Inferred
-        % Fitness Landscapes. Journal of Virology, V88 N2, p1039 - 1050.
-
-        % Possible events/reactions:
-        % Infection: U + Vn -> In     (R1) rate = a, reaction_rate = a*U*Vn 
-        % Replication: In -> In + Vm  (R2) rate = r(d), reaction_rate = r*I
-        % Death : In -> 0             (R3) rate = b
-        % Clearence: Vn -> 0          (R4) rate = b
+        myStream = RandStream('mlfg6331_64', 'Seed', nr);
         
-        %% Get protein and genome reference sequences #############################
+        %% Get protein and genome reference sequences #####################
         [gRefSeq, pRefSeq, pNames, proteinLocation, genomeLocation] = getRefSeq();
         translateCodon = geneticcode();
         [beta, sigma] = logisticRegressionProteins();
 
-        %% Initialize ############################################################# 
+        %% Initialize #####################################################
         distribution = 'normal';
 
-        if U0 == 1e5
-            r0 = 1.5 ;
-            a =  4.5e-04 ;
-            b =  0.9 ;
-            c =  0.9 ;
-            V0 = 400;
-        elseif U0 == 1e4
+        if U0 == 1e4
             r0 = 1.5 ;
             a =  4.5e-3 ;
             b =  0.9 ;
             c =  0.9 ;
             V0 = 40;
+        elseif U0 == 1e5
+            r0 = 1.5 ;
+            a =  4.5e-04 ;
+            b =  0.9 ;
+            c =  0.9 ;
+            V0 = 400;
         elseif U0 == 1e6
             r0 = 1.5 ;
             a =  4.5e-5 ;
@@ -43,6 +100,7 @@ function [data, params] = gillespie(nr, U0, mu_array)
             c =  0.9 ;
             V0 = 4e3;
         end
+        
         alpha = 1;
 
         params = struct();
@@ -54,23 +112,21 @@ function [data, params] = gillespie(nr, U0, mu_array)
         params.('V0') = V0;
         params.('mu') = mu_array;
 
-        T = inf;                    % maximal time (days)
-        t_anti = inf;
-
-        antiviral = false;
-
+        T = inf;   
+        
         % Follows
-        N_mu = length(mu_array);                            % number of mutation rates to test
-        L = length(gRefSeq);                                % length of genome sequence
-        La = length(pRefSeq);  
-        d0 = zeros(length(pNames),1);                       % distance of WTseq to fittest strain
+        N_mu = length(mu_array);        % number of mutation rates to test
+        L = length(gRefSeq);            % length of genome sequence
+        La = length(pRefSeq);           % length of protein sequence
 
         data = struct();
-        S = 1e3;                                            % initial size of arrays
+        S = 1e3;                     	% initial size of arrays
 
-        % Start for-loop over mutation rates ######################################
+        %% Start for-loop over mutation rates #############################
         for k = 1:N_mu
+            
             mu = mu_array(k);                                                     % mutation rate
+            
             % initialize
             disp(['Mutation rate: ', num2str(mu)])
             U = U0;                                                                % number of infected cells.
@@ -92,6 +148,7 @@ function [data, params] = gillespie(nr, U0, mu_array)
             m = 1;                                                                  % counter to collect stats
             t = 0.0;                                                                % initial time (days)
             t_collect = 0.0;
+            
             % arrays to keep track of viral strains
             V = zeros(1, S);                                                        % number of free viral particles per strain
             V(1) = V0;
@@ -102,11 +159,12 @@ function [data, params] = gillespie(nr, U0, mu_array)
             r(1) = r0;                                                              
             d = zeros(length(pNames), S);                                           % distance to reference per strain per protein
             dtot = zeros(1, S);                                                     % total distance to reference (sum of all proteins) per strain
+            
             % arrays to collect stats
             Y = zeros(S, La + 1);                                                   % matrix for number of viruses with distance d from WT seq.
             Y(1,1) = V(1);      
 
-            data_collect = zeros(S, 6);                                                     % matrix to collect time, # distinct genotypes, # distinct phenotypes, # not-infected cells, # infected cells, # viruses.
+            data_collect = zeros(S, 6);                                          	% matrix to collect time, # distinct genotypes, # distinct phenotypes, # not-infected cells, # infected cells, # viruses.
             data_collect(1,:) = [t, ntot, nAA, U, sum(I), sum(V)];                          
             meanDistance = zeros(1,S);                                              % mean number of mutations
             meanFitness = zeros(1,S);                                               % mean fitness of population
@@ -116,17 +174,15 @@ function [data, params] = gillespie(nr, U0, mu_array)
             maxR(1) = r0;
             diversity = zeros(1,S);
 
-            % Start while loop ####################################################
+            %% Start while loop ###########################################
             while t < T
-                 if t >= t_anti && antiviral == false
-                     r0 = alpha*r0;
-                     r  = alpha*r;
-                     antiviral = true;
-                 end    
-                 s = s + 1;                                                         
-                 % calculate total reaction rate
-                 Rtot = (a*U + b)*sum(V) + c*sum(I) + sum(r.*I);                  
-                 dt = (1/Rtot) * log(1/rand(myStream));                                       % time step is exponentially distributed and depends on total reaction rate
+  
+                 s = s + 1;                                               
+                 % Calculate total reaction rate
+                 Rtot = (a*U + b)*sum(V) + c*sum(I) + sum(r.*I);  
+                 % Time step is exponentially distributed and depends on 
+                 % the total reaction rate
+                 dt = (1/Rtot) * log(1/rand(myStream));
                  t = t + dt;
                  
                  % choose a random number between 0 and Rtot
@@ -159,14 +215,18 @@ function [data, params] = gillespie(nr, U0, mu_array)
                  for i = existing
                      % choose which of the 4 reactions will occur 
                      % and for which strain
-                     z = z + a*U*V(i);                                              % R1: infection by strain i
+                     
+                     % R1: infection by strain i
+                     z = z + a*U*V(i);
                      if z > rnd                                                         
                          I(i) = I(i) + 1;                                               
                          V(i) = V(i) - 1;
                          U = U - 1;      
                          break
                      end
-                     z = z + r(i)*I(i);                                             % R2: replication of strain i
+                     
+                     % R2: replication of strain i
+                     z = z + r(i)*I(i);
                      if z > rnd
                          i0 = i;
                         [seq_loc, seq_mut, seq_nMut, ...
@@ -184,10 +244,13 @@ function [data, params] = gillespie(nr, U0, mu_array)
                             aseqUniq_n, aseqUniq_i, aseqUniq_r, distribution);
                         break
                      end
-                     z = z + c*I(i);                                                % R3: clearence of a cell infected by strain i
+                     
+                     % R3: clearence of a cell infected by strain i
+                     z = z + c*I(i);
                      if z > rnd
                          I(i) = I(i) - 1;
-                         if V(i) + I(i) == 0    % if the strain has gone extinct, remove it
+                         % if the strain has gone extinct, remove it:
+                         if V(i) + I(i) == 0
                              i0 = i;
                             [seq_loc, seq_mut, seq_nMut, ...
                                 aseq_loc, aseq_mut, aseq_nMut, ...
@@ -203,13 +266,15 @@ function [data, params] = gillespie(nr, U0, mu_array)
                                 aseqUniq_loc, aseqUniq_mut, aseqUniq_nMut, ...
                                 aseqUniq_n, aseqUniq_i, aseqUniq_r);
                          end
-                         break % for-loop
+                         break
                      end
                      
-                     z = z + b*V(i);                                                % R4: clearence of a free viral particle of strain i
+                     % R4: clearence of a free viral particle of strain i
+                     z = z + b*V(i);
                      if z > rnd
                          V(i) = V(i) - 1;
-                         if V(i) + I(i) == 0    % if the strain has gone extinct, remove it
+                         % if the strain has gone extinct, remove it:
+                         if V(i) + I(i) == 0 
                              i0 = i;
                             [seq_loc, seq_mut, seq_nMut, ...
                                 aseq_loc, aseq_mut, aseq_nMut, ...
@@ -225,9 +290,9 @@ function [data, params] = gillespie(nr, U0, mu_array)
                                 aseqUniq_loc, aseqUniq_mut, aseqUniq_nMut, ...
                                 aseqUniq_n, aseqUniq_i, aseqUniq_r);
                          end
-                         break % for-loop
+                         break
                      end
-                 end % for-loop 
+                 end
 
                 % Stop if there are no more viral particles left:
                  if sum(I+V) == 0                                                  	
@@ -264,21 +329,19 @@ function [data, params] = gillespie(nr, U0, mu_array)
                      viralTiter = shortV + shortI;
                      meanFitness(m) = sum(r(alive) .* viralTiter) / sum(viralTiter);
                      meanDistance(m) = sum(dtot(alive) .* viralTiter) / sum(viralTiter);
-                     data_collect(m,:) = [t, ntot, nAA, U, sum(I), sum(viralTiter)];
+                     data_collect(m,:) = [t, ntot, nAA, U, sum(I), sum(V)];
                      maxD(m) = max(dtot);
                      maxR(m) = max(r);
 
-                     diversity(m) = 1 - sum((viralTiter/sum(viralTiter)).^2); % Simpson's index as diversity
-
-                     %disp(['t=',num2str(t),', \t ntot=',num2str(ntot), ', \t U=', num2str(U)])
+                     % Simpson's index as diversity
+                     diversity(m) = 1 - sum((viralTiter/sum(viralTiter)).^2); 
                  end
 
-            end % while-loop
+            end
 
             % Remove zeros at the end of vectors
             maxY = find(sum(Y) > 0, 1, 'last');
-
-            Y = Y(1:m, :);         % discard the last row of zeros   
+            Y = Y(1:m, :);          
             data_collect = data_collect(1:m, :);
             meanFitness = meanFitness(1:m);
             meanDistance = meanDistance(1:m);
@@ -314,7 +377,7 @@ function [data, params] = gillespie(nr, U0, mu_array)
             data(k).maxR = maxR;
             data(k).diversity = diversity;
             data(k).statDiv = statDiv;
-        end % for-loop
+        end
 
         disp(['Simulation time ', num2str(toc), ' seconds.'])
 end
