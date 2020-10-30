@@ -1,7 +1,31 @@
 function params_lhs = lhs_initialization(nPoints, varRatio, defVal)
-% Latin Hypercube Sampling (LHS) intitialization
+        %------------------------------------------------------------------
+        % Latin Hypercube Sampling (LHS) intitialization.
+        
+        % INPUT PARAMETERS
+        %-----------------
+        
+        % nPoints: int
+        % number of points in the 4D hypercube.
+        
+        % varRatio: double
+        % Specifies the variation of the parameter values around the 
+        % default values as a ratio of the default values. 
+        
+        % defVal: array of 4 doubles
+        % Default values around which values are varied in the hypercube.
+        
+        % OUTPUT PARAMETERS
+        %-----------------
+        
+        % params_lhs: nPoints x 4 double array containing coordinates of
+        % points in the 4D hypercube, which correspond to parameter values
+        % of the infection rate (a), clearance/death rate (b/c), the
+        % reference replication rate (r0) and the mutation rate (mu).
+        
+        %------------------------------------------------------------------
 
-% LHS with 1000 points for 4 parameters
+% LHS with nPoints parameter sets for 4 parameters
 nParameters = 4;
 params_lhs = lhsdesign(nPoints, nParameters); % [a, b, r0, mu]
 

@@ -1,16 +1,44 @@
 function [PRCC_mat, pval_mat] = sensitivity_analysis(nPoints, nIter)
-% Sensitivity analysis function to run parameter sets x times and average
-% results and PRCC
+        %------------------------------------------------------------------
+        % Sensitivity analysis function to run parameter sets sampled with 
+        % nPoints parameter sets in the hypercube. For each parameter set
+        % nIter simulations are run. Results are combined by averaging.
+        % Using the averaged results, Partial Rank Correlation Coefficients 
+        % (PRCC) and their correpsonding p-values are calculated with 
+        % partialcorri.#
+        
+        % INPUT PARAMETERS
+        %-----------------
+        
+        % nPoints: int
+        % Number of points in the 4D hypercube.
+        
+        % nIter: int
+        % Number of simulation run for the same parameter set.
+        
+        % OUTPUT PARAMETERS
+        %-----------------
+        
+        % PRCC_mat: 7x4 double matrix
+        % Contains PRCC values between 7 model observables and 4 input
+        % parameters while controlling for effects of untested input
+        % parameters.
+        
+        % pval_mat: 7x4 double matrix
+        % Contains p-values correpsonding to the PRCC values in PRCC_mat.
+        
+        %------------------------------------------------------------------
 
 % Latin Hypercube Sampling (LHS) intitialization
 U0 = 1e4;
 params_lhs = lhs_initialization(nPoints, 0.2, [4.5e-3, 0.9, 1.5, 1e-6]); % [a b r0 mu]
 
-% Define input parameter and output response fields
+% Define input parameter and model observable fields
 params_fields = {'a', 'b', 'r0', 'mu'};
 data_fields = {'V_peakTime', 'V_peak', 't_end', 'statR', 'maxmaxR', 'statDiv', 'statD'};
 nField = length(data_fields);
 
+% Run simulations for hypercube parameter sets nIter times
 data_cell = cell(nPoints, nIter);
 params_cell = cell(nPoints, nIter);
 nr = 0;
@@ -41,8 +69,7 @@ params_mat = [[params.a]', [params.b]', [params.r0]', [params.mu]'];
 [params_unique, ~, params_index] = unique(params_mat, 'rows');
 nPoint = size(params_unique, 1);
 
-% For data fields of interest mean/std/sem output responses for each unique
-% parameter point
+% Calculate mean/std/sem observables for each unique parameter point
 data_mat = zeros(nParams, nField);
 data_mean = zeros(nPoint, nField);
 data_std = zeros(nPoint, nField);
@@ -57,9 +84,4 @@ end
 % PRCC
 [PRCC_mat, pval_mat] = partialcorri(data_mean, params_unique, 'type', 'Spearman');
 
-%% Save
-save('SA_lhs_nK_50.mat', ...
-     'params_mat', 'params_index', 'params_fields', 'data_mat', 'data_fields', ... % data per simulation
-     'params_unique', 'data_mean', 'data_std', 'data_sem', ... % data per point in hypercube
-     'PRCC_mat', 'pval_mat') % global sensitivity analysis results
 end

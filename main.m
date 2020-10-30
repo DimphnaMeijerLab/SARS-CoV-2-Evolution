@@ -21,28 +21,28 @@ legend('Uninfected cells', 'Infected cells', 'Free viral particles')
 xlabel('Time (days p.i.)')
 ylabel('Count')
 
-%% SA
+%% Sensitivity Analysis
+% nPoints = 1e4 and nIter = 50 were used for our research, since this is
+% likely not feasible to do on a single computer the values of nPoints and
+% nIter are reduced.
+
 PRCC_mat, pval_mat = sensitivity_analysis(10, 2);
 
-% plot
+% PRCC matrix, ignore non-significant results (p-val>0.05)
 data_fields_plot = {'Peak time', 'Peak load', 'End time', 'stat(r)', 'max(r)', 'stat(diversity)', 'stat(d)'};
 fig1 = figure();
 movegui(fig1,'west');
-
 PRCC_mat_plot = PRCC_mat;
 PRCC_mat_plot(~(pval_mat<0.05)) = nan;
 hm = heatmap(round(PRCC_mat_plot,2),'ColorMap', redblue(),'MissingDataLabel','n.s.','MissingDataColor',[0.4 0.4 0.4]);
 hm.XDisplayLabels = params_fields;
-%hm.XLabel = 'Input parameters';
+hm.XLabel = 'Input parameters';
 hm.YDisplayLabels = data_fields_plot;
-%hm.YLabel = 'Output responses';
-%hm.Title = 'PRCC matrix';
+hm.YLabel = 'Model observables';
+hm.Title = 'PRCC matrix';
 caxis(hm,[-1 1])
-
-
 set(gca, 'FontSize',9)
-set(gcf,'Color','w','Units','inches','Position',[1 1 2*2.165 1*1.74]) 
-% saveas(fig1, ['Figures', filesep, 'PRCC_heatmap.pdf'])
+set(gcf,'Color','w','Units','inches','Position',[1 1 2*2.165 1*1.74])
 
 %% 
 function c = redblue(m)
