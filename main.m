@@ -11,11 +11,10 @@ mu_array = 1e-6;    % mutation rate(s) to test
 [data, params] = gillespie(nr, U0, mu_array);
 
 % Plot outcome
-data_collect = data.data_collect;
-t = data_collect(:,1);
-U = data_collect(:,4);
-I = data_collect(:,5);
-V = data_collect(:,6);
+t = data.t;
+U = data.U;
+I = data.I_sum;
+V = data.V_sum;
 
 semilogy(t, U, 'k', t, I, 'b', t, V, 'r')
 legend('Uninfected cells', 'Infected cells', 'Free viral particles')

@@ -1,4 +1,4 @@
-function [data, params] = gillespie(nr, U0, mu_array)
+function [data, params] = gillespie(nr, U0, mu_array, varargin)
         %------------------------------------------------------------------
         % Simulate a viral infection with the Gillespi algorithm.
         
@@ -15,6 +15,14 @@ function [data, params] = gillespie(nr, U0, mu_array)
         % Array with mutation rates you want to test. If you want to do one
         % single simulation, mu_array is a single numbers.
         
+        % a: double
+        % Infection rate.
+        
+        % b: double.
+        % Clearance/death rate.
+        
+        % r0: double.
+        % Replication rate of reference sequence.
         
         % OUTPUT PARAMETERS
         %-----------------
@@ -102,6 +110,19 @@ function [data, params] = gillespie(nr, U0, mu_array)
         end
         
         alpha = 1;
+        
+        % Optionally specify a, b, c and r0 values
+        p = inputParser;
+        addParameter(p, 'a', a, @isnumeric)
+        addParameter(p, 'b', b, @isnumeric)
+        addParameter(p, 'c', c, @isnumeric)
+        addParameter(p, 'r0', r0, @isnumeric)
+        disp(varargin)
+        parse(p, varargin{:})
+        a = p.Results.a;
+        b = p.Results.b;
+        c = p.Results.c;
+        r0 = p.Results.r0;
 
         params = struct();
         params.('U0') = U0;
@@ -126,6 +147,8 @@ function [data, params] = gillespie(nr, U0, mu_array)
         for k = 1:N_mu
             
             mu = mu_array(k);                                                     % mutation rate
+            
+            fprintf('\n Iteration %d: U0=%d \t V0=%d \t a=%f \t b=%f \t c=%f \t r0=%f \t mu=%e \n', k, U0, V0, a, b, c, r0, mu)
             
             % initialize
             disp(['Mutation rate: ', num2str(mu)])
@@ -360,15 +383,17 @@ function [data, params] = gillespie(nr, U0, mu_array)
             statDiv = sum(diversity(2:end) .* delta_t) / time(end);
 
             % Collect information for each simulation
+            data(k).t = data_collect(:,1);
+            data(k).ntot = data_collect(:,2);
+            data(k).nAA = data_collect(:,3);
+            data(k).U = data_collect(:,4);
+            data(k).I_sum = data_collect(:,5);
+            data(k).V_sum = data_collect(:,6);
             data(k).alpha = alpha;
             data(k).Mu = mu;
-            data(k).t = t;
+            data(k).t_end = t;
             data(k).ntot = ntot;
             data(k).nAA = nAA;
-            data(k).U_sum = sum(U);
-            data(k).I_sum = sum(I);
-            data(k).V_sum = sum(V);
-            data(k).data_collect = data_collect;
             data(k).statY = statY(1:maxY);
             data(k).relativeY = relativeY(:, 1:maxY);
             data(k).statD = statD;
@@ -377,6 +402,8 @@ function [data, params] = gillespie(nr, U0, mu_array)
             data(k).maxR = maxR;
             data(k).diversity = diversity;
             data(k).statDiv = statDiv;
+            [data(k).V_peak, peakIndex] = max(data(k).V_sum);
+            data(k).V_peakTime = data(k).t(peakIndex);
         end
 
         disp(['Simulation time ', num2str(toc), ' seconds.'])
