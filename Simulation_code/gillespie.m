@@ -268,7 +268,7 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
                         break
                      end
                      
-                     % R3: clearence of a cell infected by strain i
+                     % R3: clearance of a cell infected by strain i
                      z = z + c*I(i);
                      if z > rnd
                          I(i) = I(i) - 1;
@@ -292,7 +292,7 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
                          break
                      end
                      
-                     % R4: clearence of a free viral particle of strain i
+                     % R4: clearance of a free viral particle of strain i
                      z = z + b*V(i);
                      if z > rnd
                          V(i) = V(i) - 1;
