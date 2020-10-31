@@ -1,5 +1,28 @@
 function [gRefSeq, pRefSeq, pNames, proteinLocation, genomeLocation] = getRefSeq()
 
+    %----------------------------------------------------------------------
+    % Load the coding region of the SARS-CoV-2 reference sequence.
+    
+    % OUTPUTS
+    % -------
+    % gRefSeq: char array
+    % Full coding SARS-CoV-2 genome sequence.
+    
+    % pRefSeq: char array
+    % Full coding SARS-CoV-2 protein (amino acid) sequence.
+    
+    % pNames: cell array
+    % Names of the proteins.
+    
+    % proteinLocation: nProtx2 array, where N is the number of proteins.
+    % Each nth row represents the starting and ending position of the nth
+    % protein in the full protein sequence.
+    
+    % genomeLocation: Nx2 array, where N is the number of proteins.
+    % Each nth row represents the starting and ending position of the nth
+    % protein in the full genome sequence.
+    %----------------------------------------------------------------------
+
     % Load data
     pNames = ...
         {'NSP1', 'NSP2', 'NSP3', 'NSP4', 'NSP5', 'NSP6', 'NSP7', 'NSP8', ...

@@ -12,6 +12,11 @@ remove(i0, ...
     aseqUniq_loc, aseqUniq_mut, aseqUniq_nMut, ...
     aseqUniq_n, aseqUniq_i, aseqUniq_r)
 
+    %----------------------------------------------------------------------
+    % If a viral strain i has gone extinct, this function removes it from
+    % all arrays.
+    %----------------------------------------------------------------------
+
     oldAAsequence_loc = aseq_loc{i0};
     oldAAsequence_mut = aseq_mut{i0};
     oldAAsequence_nMut = aseq_nMut(i0);

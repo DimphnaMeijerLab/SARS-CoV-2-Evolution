@@ -46,7 +46,7 @@ set(gcf,'Color','w','Units','inches','Position',[1 1 2*2.165 1*1.74])
 
 %% 
 function c = redblue(m)
-%REDBLUE    Shades of red and blue color map
+%   REDBLUE    Shades of red and blue color map
 %   REDBLUE(M), is an M-by-3 matrix that defines a colormap.
 %   The colors begin with bright blue, range through shades of
 %   blue to white, and then through shades of red to bright red.

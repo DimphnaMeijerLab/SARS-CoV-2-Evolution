@@ -152,10 +152,10 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
             
             % initialize
             disp(['Mutation rate: ', num2str(mu)])
-            U = U0;                                                                % number of infected cells.
-            seq_loc = cell(1,S); aseq_loc = cell(1,S);                             % number of infected cells.
+            U = U0;                                                                % initial number of uninfected cells.
+            seq_loc = cell(1,S); aseq_loc = cell(1,S);                            
             seq_mut = cell(1,S); aseq_mut = cell(1,S);
-            seq_nMut = zeros(1,S); aseq_nMut = zeros(1,S);                         % cell array to keep track of aa sequences   
+            seq_nMut = zeros(1,S); aseq_nMut = zeros(1,S);                         
 
             aseqUniq_loc = cell(1,S);
             aseqUniq_mut = cell(1,S);

@@ -11,10 +11,14 @@ replicate(i0, myStream, ...
     gRefSeq, L, pRefSeq, beta, proteinLocation, translateCodon, ...
     aseqUniq_loc, aseqUniq_mut, aseqUniq_nMut, ...
     aseqUniq_n, aseqUniq_i, aseqUniq_r, distribution)
-% This function lets a virus of strain i0 replicate. During the
-% replication, each nucleotide has a probability mu to mutate.
-% If a new strain is formed by mutation, the fitness of this new strain is
-% calculated with the fitness function.
+
+    %----------------------------------------------------------------------
+    % This function is called if a virus of strain i0 replicates. During the
+    % replication, each nucleotide has a probability mu to mutate.
+    % If a new strain is formed by mutation, the fitness of this new strain is
+    % calculated with the logistic fitness landscape.
+    %----------------------------------------------------------------------
+    
     oldsequence_loc = seq_loc{i0};
     oldsequence_mut = seq_mut{i0};
     nt = ['A','T','G','C'];
@@ -178,15 +182,12 @@ replicate(i0, myStream, ...
                     r(newLoc) = aseqUniq_r(iUniqAA);
                     aseqUniq_n(iUniqAA) = aseqUniq_n(iUniqAA) + 1;
                     aseqUniq_i{iUniqAA} = [aseqUniq_i{iUniqAA}, newLoc];
-%                     aseq_i(newLoc) = iUniqAA;
-%                     aseq_unique_n(iAA) = aseq_unique_n(iAA) + 1;
                     return
                 end
             elseif nMutAA==0 % exception for reference
                 r(newLoc) = aseqUniq_r(iUniqAA);
                 aseqUniq_n(iUniqAA) = aseqUniq_n(iUniqAA) + 1;
                 aseqUniq_i{iUniqAA} = [aseqUniq_i{iUniqAA}, newLoc];
-%                     aseq_unique_n(iAA) = aseq_unique_n(iAA) + 1;
             end
         end
     end
@@ -200,56 +201,5 @@ replicate(i0, myStream, ...
     aseqUniq_n(newLoc_aseqUniq) = 1;
     aseqUniq_i{newLoc_aseqUniq} = newLoc;
     aseqUniq_r(newLoc_aseqUniq) = r(newLoc);
-    
-    % aseqUniq_target cell array of length of nAA and inside logicals of
-    % lengths ntot
-    
-    
-    
-%         % Keep track of all unique AAs generated over all time, if encountering
-%     % a new amino acid as opposed to all previously generated amino acids
-%     % generate a new replication rate. If encountering an already
-%     % generated AA, assign an previously computed replication rate.
-%     % If new AA was generated increase present and alltime AA counts.
-%     if nMutAA==0
-%         r(newLoc) = r0;
-%     else
-%         for iAA = 1:nAA_alltime_unique
-%             if nMutAA==aseq_alltime_unique_nMut(iAA)
-%                 if all(newAAsequence_loc==aseq_alltime_unique_loc{iAA})
-%                     if all(newAAsequence_mut==aseq_alltime_unique_mut{iAA})
-%                         r(newLoc) = r_alltime_unique(iAA);
-%                         if aseq_alltime_unique_n(iAA)==0
-%                             nAA = nAA + 1;
-%                         end
-%                         aseq_alltime_unique_n(iAA) = aseq_alltime_unique_n(iAA) + 1;
-%                         return
-%                     end   
-%     % Loop through all existing strains and if the new AA sequence is the
-%     % same as an already existing strain, assign an existing replication
-%     % rate to the new strain and do not increase nAA and exit the function. 
-%     % If the new sequence is not the same as any of the existing strains, 
-%     % the loop is exited, a new replication rate is generated and nAA is increased.
-%     for iAA = existing
-%         if nMutAA==aseq_nMut(iAA)
-%             if all(newAAsequence_loc==aseq_loc{iAA})
-%                 if all(newAAsequence_mut==aseq_mut{iAA})
-%                     r(newLoc) = r(iAA);
-%                     return
-%                 end
-%             end
-%         end
-%     end
-%     nAA_alltime_unique = nAA_alltime_unique + 1; % number of unique AAs generated over all time
-%     r(newLoc) = replicationRate(di, r0, sigma, pInfo);
-%     nAA = nAA + 1; % number of amino acids currently present
-%     aseq_alltime_unique_loc(nAA_alltime_unique) = aseq_loc(newLoc);
-%     aseq_alltime_unique_mut(nAA_alltime_unique) = aseq_mut(newLoc);
-%     aseq_alltime_unique_nMut(nAA_alltime_unique) = nMutAA;
-%     aseq_alltime_unique_n(nAA_alltime_unique) = 1;
-%     r_alltime_unique(nAA_alltime_unique) = replicationRate(di, r0, sigma, pInfo);
-%     r(newLoc) = r_alltime_unique(nAA_alltime_unique);
-
-
     
 end
