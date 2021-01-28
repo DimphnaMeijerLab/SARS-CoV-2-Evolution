@@ -30,15 +30,16 @@
 %   were downloaded from the GISAID database.
 %--------------------------------------------------------------------------
 
-startT = datetime('01-DEC-2019');
-endT = datetime('24-SEP-2020');
-
-%% Load data
-tic
 clear all
 close all
 
-file = 'proteinAlignment0923.mat';
+downloadDate = '20210120';
+startT = datetime('01-DEC-2019');
+endT = datetime('21-JAN-2021');
+
+%% Load data
+tic
+file = ['proteinAlignments', downloadDate,'.mat'];
 load(file);
 disp(['data loaded after ', num2str(toc),' seconds.'])
 %%
@@ -46,7 +47,7 @@ nSeqs = length(alignments);
 proteinNames = fields(alignments(1).Alignments);
 % remove NSP11 (it is already in NSP12):
 proteinNames = proteinNames(~ismember(proteinNames, 'NSP11'));
-
+error('Doeii')
 %% Find Hamming distance of all alignments (for figure 5)
 tic
 disp('Starting the code')
@@ -59,12 +60,13 @@ hammingDist = hammingDist(validDates);
 locs = locs(validDates);
 dates = dates(validDates);
 
-save('../Data/hammingDist0923.mat', 'dates', 'hammingDist', 'locs')
+save(['../Data/hammingDist',downloadDate,'.mat'], 'dates', 'hammingDist', 'locs','-v7.3')
 disp(toc)
 
 %% Plot Hamming distance against time
 figure()
 plot(dates, hammingDist, '*')
+drawnow
 
 %% Fill in the mismatchboolean and save the result
 IDs = 1:length(alignments);
@@ -72,7 +74,7 @@ mismatches = initMismatches(proteinNames, alignments, IDs);
 [mismatches, nSeqPerProtein] = findMismatches(proteinNames, alignments, mismatches, IDs);
 mismatchBoolean = fillMismatchBoolean(proteinNames, alignments, mismatches);
 
-save('../Data/mismatchBoolean0923.mat', 'proteinNames', 'mismatchBoolean', 'nSeqPerProtein', '-v7.3')
+save(['../Data/mismatchBoolean',downloadDate,'.mat'], 'proteinNames', 'mismatchBoolean', 'nSeqPerProtein', '-v7.3')
 
 %% Functions
 function [hammingDist, dates, locs] = findHammingDistances(proteinNames, alignments)
