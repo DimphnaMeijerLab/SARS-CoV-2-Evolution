@@ -18,7 +18,7 @@ lambda = 0;
 d0Fit = - betaFit(1,:) ./ betaFit(2,:);         % d0 = -b0/b1
 alfaFit = - betaFit(2,:);                       % alfa = -b1
 
-s0 = 0.05;               % each protein should have sigma >= 0.1
+s0 = 0.1;               % each protein should have sigma >= 0.1
 tolerance = 1e-5;       % tolerance of root solving
 
 for p = 1:length(proteinNames)
