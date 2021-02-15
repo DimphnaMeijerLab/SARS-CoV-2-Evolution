@@ -30,8 +30,8 @@
 %   were downloaded from the GISAID database.
 %--------------------------------------------------------------------------
 
-% clear all
-% close all
+clear all
+close all
 
 downloadDate = '20210120';
 startT = datetime('01-DEC-2019');
@@ -42,7 +42,7 @@ dT = 7;   % time between subsequent timepoints in days
 %% Load data
 tic
 file = ['proteinAlignments', downloadDate,'.mat'];
-% load(file);
+load(file);
 disp(['data loaded after ', num2str(toc),' seconds.'])
 %%
 nSeqs = length(alignments);
@@ -56,37 +56,44 @@ for s = 1:length(alignments)
     dates(s) = alignments(s).LocusModificationDate;
 end
 
-%% Fill in the mismatchboolean and save the result
-disp('Starting mismatch boolean ...')
-
-% Initialize arrays
-IDs = 1:length(alignments);
-mismatches = initMismatches(proteinNames, alignments, IDs);
-timePoints = [startT:dT:endT, endT];
-numTimeBins = length(timePoints) - 1;
-mismatchBooleanOverTime = struct();
 
 %% Loop over timepoints, update mismatches for each time bin, and get the
-% mismatchboolean at each timepoint.
-for i = 1:numTimeBins
-    t1 = timePoints(i);
-    t2 = timePoints(i+1);
-    disp(['Making mismatchboolean between t1 = ', datestr(t1),' and t2 =', datestr(t2)])
-    IDs = find(dates >= t1 & dates < t2);
+% mismatchboolean at each timepoint. Do this for different threshold
+% levels.
+thresholdArray = [0, 1, 2, 3, 4, 5];
 
-    [mismatches, ~] = findMismatches(proteinNames, alignments, mismatches, IDs);
-    mismatchBoolean = fillMismatchBoolean(proteinNames, alignments, mismatches);
-    % Fill in mismatchboolean in mismatchBooleanOverTime
-    pNames = fields(mismatchBoolean);
-    for p = 1:length(pNames)
-        protein = pNames{p};
-        mismatchBooleanOverTime(i).(protein) = mismatchBoolean.(protein);
+for t = 1:length(thresholdArray)
+    threshold = thresholdArray(t);
+    disp('\n')
+    disp(['STARTING THRESHOLD = ', num2str(threshold)])
+    
+    % Initialize arrays
+    IDs = 1:length(alignments);
+    mismatches = initMismatches(proteinNames, alignments, IDs);
+    timePoints = [startT:dT:endT, endT];
+    numTimeBins = length(timePoints) - 1;
+    mismatchBooleanOverTime = struct();
+    
+    for i = 1:numTimeBins
+        t1 = timePoints(i);
+        t2 = timePoints(i+1);
+        disp(['Making mismatchboolean between t1 = ', datestr(t1),' and t2 =', datestr(t2)])
+        IDs = find(dates >= t1 & dates < t2);
+
+        [mismatches, ~] = findMismatches(proteinNames, alignments, mismatches, IDs);
+        mismatchBoolean = fillMismatchBoolean(proteinNames, alignments, mismatches, threshold);
+        % Fill in mismatchboolean in mismatchBooleanOverTime
+        pNames = fields(mismatchBoolean);
+        for p = 1:length(pNames)
+            protein = pNames{p};
+            mismatchBooleanOverTime(i).(protein) = mismatchBoolean.(protein);
+        end
     end
-end
 
-%% Save the result
-save(['../Data/mismatchBooleanOverTime',downloadDate,'.mat'], 'proteinNames',...
-      'mismatchBooleanOverTime', 'timePoints', 'dates', '-v7.3')
+    % Save the result
+    save(['../Data/mismatchBooleanOverTime',downloadDate,'_t',num2str(threshold),'.mat'], 'proteinNames',...
+          'mismatchBooleanOverTime', 'timePoints', 'dates', 'threshold', '-v7.3')
+end
 
 %% Functions 
 

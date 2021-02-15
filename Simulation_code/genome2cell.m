@@ -37,5 +37,5 @@ function genomeRefCell = genome2cell(genomeData)
     genomeRefCell{21} = genomeData(27394:27756); % NS7a
     genomeRefCell{22} = genomeData(27756:27884); % NS7b
     genomeRefCell{23} = genomeData(27894:28256); % NS8
-    genomeRefCell{24} = genomeData(28274:29530); % N
+    genomeRefCell{24} = genomeData(28274:29533); % N
 end

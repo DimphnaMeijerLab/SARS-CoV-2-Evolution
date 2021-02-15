@@ -1,34 +1,34 @@
 function [data, params] = gillespie(nr, U0, mu_array, varargin)
         %------------------------------------------------------------------
         % Simulate a viral infection with the Gillespi algorithm.
-        
+        %
         % INPUT PARAMETERS
         %-----------------
-        
+        %
         % nr: int
         % Simulation number, used for random number generator.
-        
+        %
         % U0: int
         % Initial number of not-infected cells.
-        
+        %
         % mu_array: double or array of doubles.
         % Array with mutation rates you want to test. If you want to do one
         % single simulation, mu_array is a single numbers.
-        
+        %
         % a: double
         % Infection rate.
-        
+        %
         % b: double.
         % Clearance/death rate.
-        
+        %
         % r0: double.
         % Replication rate of reference sequence.
-        
+        %
         % OUTPUT PARAMETERS
         %-----------------
         % data: structure array with the same length as mu_array.
         % Structure to collect all data per mutation rate. The fields are:
-        
+        %
         %   data_collect:   T x 6 array containing values that change over 
         %                   time, where T is the number of timepoints in
         %                   the simulation.
@@ -43,48 +43,48 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         %                             cells per timepoint (I).
         %                   COLUMN 6: the total number free viral particles
         %                             per timepoint (V).
-                                    
+        %                            
         %   relativeY:      T x maxY array, where T is the number of
         %                   timepoints and maxY is the maximal hamming
         %                   distance that arose in the simulation + 1. Each
         %                   value (t,i) in the array denotes the relative
         %                   abundance of viruses with hamming distance i-1 
         %                   at timepoint t.
-        
+        %
         %   statY:          1 x maxY array with the time-integrated
         %                   relative abundance of viruses with a hamming
         %                   distance i-1.
-        
-        
+        %
+        %
         %   statR:          double denoting the stationary reproduction
         %                   rate (i.e. reproduction rate integrated over
         %                   time).
-        
+        %
         %   maxR:           double, maximal reproduction rate that arose in
         %                   the simulation.
-        
+        %
         %   diversity:      1 X T array with de diversity of the viral
         %                   population at all T timepoints.
-        
+        %
      	%   statDiv:        double denoting the stationary diversity (i.e.
      	%                   the viral diversity integrated over time).
-        
+        %
         %   statD:          double denoting the stationary hamming distance 
         %                   (i.e. the hamming distance integrated over
         %                   time).
-
+        %
         %   maxD:           double, maximal hamming distance that arose in
         %                   the simulation.
-        
+        %
         %------------------------------------------------------------------
         
         tic
         myStream = RandStream('mlfg6331_64', 'Seed', nr);
         
         %% Get protein and genome reference sequences #####################
-        [gRefSeq, pRefSeq, pNames, proteinLocation, genomeLocation] = getRefSeq();
+        [gRefSeq, pRefSeq, pNames, proteinLocation, ~] = getRefSeq();
         translateCodon = geneticcode();
-        [beta, sigma] = logisticRegressionProteins();
+        [beta, sigma] = logisticRegressionProteins(mismatchBoolean, lambda);
 
         %% Initialize #####################################################
         distribution = 'normal';

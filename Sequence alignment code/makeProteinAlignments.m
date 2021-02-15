@@ -52,6 +52,7 @@ if ~strcmp(seqs(1).LocusName, refSeqID)
     error('Fatal error: The first entry in seqs is not the reference sequence. Please check where the reference EPI_ISL_402124 is stored.')
 end
 refSeq = seqs(1);
+save('refSeqProtein.mat','refSeq','-v7.3');
 
 %% Protein alignments
 tic
@@ -136,6 +137,7 @@ function [seqs, alignments] = store_seqs_in_datastructure(data)
         else
             seqs(v).Translation.(proteinName).Sequence = data(i).Sequence;
         end    
+        
     end
 end
 
