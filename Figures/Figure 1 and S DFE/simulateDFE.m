@@ -19,12 +19,16 @@ fitnessModel = 'multiplicative';
 
 %% Define fitness function
 
-if strcmp(fitnessModel, 'multiplicative')
+if strcmp(fitnessModel, 'sigmoid')
+    fitnessFunction = @predict;
+elseif strcmp(fitnessModel, 'multiplicative')
     fitnessFunction = @multiplicative_fitness;
 elseif strcmp(fitnessModel, 'eigen')
     fitnessFunction = @eigen_model_fitness;
 elseif strcmp(fitnessModel, 'truncation')
     fitnessFunction = @truncation_model_fitness;
+else
+    error('Invalid fitness model.')
 end
 
 %% Get reference sequences, beta, sigma
