@@ -10,13 +10,29 @@
 %   4) Distribution of fitness effects.
 
 %% Load alignment data & do logistic regression
-addpath('../../Data')
+addpath('../../Data');
+addpath('../../Fitness landscape');
+addpath('../../Simulation_code');
+
 downloadDate = '20210120';
+fitnessModel = 'multiplicative';
+sigma = zeros(1,length(pNames)) + 0.1;
+
+%% Define fitness function and do logistic regression
+
+if strcmp(fitnessModel, 'multiplicative')
+    fitnessFunction = @multiplicative_fitness;
+elseif strcmp(fitnessModel, 'eigen')
+    fitnessFunction = @eigen_model_fitness;
+elseif strcmp(fitnessModel, 'truncation')
+    fitnessFunction = @truncation_model_fitness;
+end
+
 fileName = ['mismatchBooleanOverTime',downloadDate,'_t3.mat'];
 load(fileName)
 
 mismatchBoolean = mismatchBooleanOverTime(end);
-[beta, sigma] = logisticRegressionProteins(mismatchBoolean, lambda);
+[beta, ~] = logisticRegressionProteins(mismatchBoolean, lambda);
 
 alfa = - beta(2,:);
 d0 = beta(1,:) ./ alfa;
@@ -36,7 +52,7 @@ close all
 figure()
 plot(X,y,'.r','MarkerSize',10);
 hold on
-plot(xaxis, predict(b, xaxis), 'k','LineWidth',1);
+plot(xaxis, fitnessFunction(b, xaxis), 'k','LineWidth',1);
 
 xlabel('Hamming distance, d')
 ylabel('Expected fitness \newline contribution, <w_{Spike}>')
@@ -93,7 +109,7 @@ xaxis = linspace(0,length(y)-1, 10*length(y))';
 figure()
 plot(X,y,'.r','MarkerSize',10);
 hold on
-plot(xaxis, predict(b, xaxis), 'k','LineWidth',1);
+plot(xaxis, fitnessFunction(b, xaxis), 'k','LineWidth',1);
 xlabel('Hamming distance, d')
 ylabel('Expected fitness \newline contribution, <w_{NSP9}>')
 yticks([0,1])
@@ -123,7 +139,7 @@ for E = 1:length(proteinNames)
     Xax = linspace(0,length(yax)-1,length(yax))';
     xaxis = linspace(0,length(yax)-1, 10*length(yax))';
     b = beta(:,E);
-    S = predict(b, xaxis);
+    S = fitnessFunction(b, xaxis);
     S(1:2)=NaN;
  
     subplot(5,6,E)
@@ -337,7 +353,7 @@ saveas(gcf,'Figures/NumSeqsvsTime.pdf')
 %% Distribution of fitness effects
 
 % Load simulated data
-load('Data/simulatedDFE.mat')
+load(['Data/simulatedDFE_',fitnessModel,'.mat'])
 r0 = 1.5;
 
 colorbar = jet;

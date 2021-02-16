@@ -3,17 +3,31 @@ clear all
 close all
 clc
 
+addpath('../../Data')
+addpath('../../Simulation_code')
+addpath('../../Fitness landscape')
+
 %% Specification of simulation
 nSim = 1e4;         % number of simulations
 r0 = 1.5;           % replication rate of WT sequence
 maxD = 12;          % maximal hamming distance
 downloadDate = '20210120';
-lambda = 1e-3;
+lambda = 0;
+sigma = 0.1;
+distribution = 'normal';
+fitnessModel = 'multiplicative';
+
+%% Define fitness function
+
+if strcmp(fitnessModel, 'multiplicative')
+    fitnessFunction = @multiplicative_fitness;
+elseif strcmp(fitnessModel, 'eigen')
+    fitnessFunction = @eigen_model_fitness;
+elseif strcmp(fitnessModel, 'truncation')
+    fitnessFunction = @truncation_model_fitness;
+end
 
 %% Get reference sequences, beta, sigma
-addpath('../../Data')
-addpath('../../Simulation_code')
-
 fileName = ['mismatchBooleanOverTime',downloadDate,'_t3.mat'];
 load(fileName)
 mismatchBoolean = mismatchBooleanOverTime(end);
@@ -22,7 +36,7 @@ pRefSeq = refseq.pRefSeq;
 pNames = refseq.pNames;
 proteinLocation = refseq.proteinLocation;
 
-[beta, sigma] = logisticRegressionProteins(mismatchBoolean, lambda);
+[beta, ~] = logisticRegressionProteins(mismatchBoolean, lambda);
 
 La = length(pRefSeq);
 nP = length(pNames);
@@ -43,15 +57,13 @@ for d = 1:maxD
     % Draw replication rates 
     for i = 1:nSim
         di = zeros(nP, 1);
-
         for j = 1:d
             iMut = mutations(j, i);
             di(iMut) = di(iMut) + 1;
         end
-
-        r(d, i) = replicationRate(di, r0, sigma, beta, 'normal');
+        r(d, i) = replicationRate(di, r0, distribution, fitnessFunction, sigma, beta);
     end
 end
 
-save('Data/simulatedDFE.mat', 'r', 'nSim', 'maxD', 'r0')
+save(['Data/simulatedDFE_',fitnessModel,'.mat'], 'r', 'nSim', 'maxD', 'r0')
 
