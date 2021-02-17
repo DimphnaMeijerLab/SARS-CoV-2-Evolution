@@ -14,8 +14,8 @@ maxD = 12;          % maximal hamming distance
 downloadDate = '20210120';
 lambda = 0;
 sigma = 0.1;
-distribution = 'normal';
-fitnessModel = 'multiplicative';
+distribution = 'empirical';
+fitnessModel = 'sigmoid';
 
 %% Define fitness function
 
@@ -69,5 +69,5 @@ for d = 1:maxD
     end
 end
 
-save(['Data/simulatedDFE_',fitnessModel,'.mat'], 'r', 'nSim', 'maxD', 'r0')
+save(['Data/simulatedDFE_',fitnessModel,'_',distribution,'.mat'], 'r', 'nSim', 'maxD', 'r0')
 

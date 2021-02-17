@@ -17,7 +17,7 @@ function r = replicationRate(d, r0, distribution, fitnessFunction, sigma, beta)
     % r0: double
     % Replication rate of reference sequence.
     %
-    % distribution: string; choose from 'normal' or 'gamma'.
+    % distribution: string; choose from 'normal' or 'gamma' or 'empirical'.
     % Probability distribution of the fitness of newly emerged strains.
     %
     % fitnessFunction: function handle
@@ -64,9 +64,23 @@ function r = replicationRate(d, r0, distribution, fitnessFunction, sigma, beta)
                 shape = mu^2 / sigma(i);
                 scale = sigma(i) / mu;
                 replRate = random('Gamma', shape, scale);
-                
+            
+            elseif strcmp(distribution, 'empirical')
+                % Make probability distributions and truncate them
+                if rand(1) < 0.958      % the probability of a deleterious mutation is 95.8%
+                    mean = mu * 0.1904; % 0.1904 is the expected fitness reduction of Sanjuan. We downscale it according to the expected fitness
+                    mu_param = log( mean ) - 1.206^2 / 2;
+                    pd_deleterious = makedist('Lognormal','mu',mu_param,'sigma',1.206);
+                    pd_deleterious = truncate(pd_deleterious,0,mu);
+                    replRate = random(pd_deleterious);
+                else
+                    pd_beneficial = makedist('Exponential','mu',mu);
+                    pd_beneficial = truncate(pd_beneficial,mu,inf);
+                    replRate = random(pd_beneficial);
+                end
+
             else
-                disp('Invalid distribution name');
+                error('Invalid distribution name');
             end
         end
         
