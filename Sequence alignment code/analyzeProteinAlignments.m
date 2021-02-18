@@ -30,8 +30,8 @@
 %   were downloaded from the GISAID database.
 %--------------------------------------------------------------------------
 
-%clear all
-%close all
+clear all
+close all
 
 downloadDate = '20210120';
 startT = datetime('01-DEC-2019');
@@ -40,7 +40,7 @@ endT = datetime('21-JAN-2021');
 %% Load data
 tic
 file = ['proteinAlignments', downloadDate,'.mat'];
-%load(file);
+load(file);
 disp(['data loaded after ', num2str(toc),' seconds.'])
 %%
 nSeqs = length(alignments);

@@ -15,8 +15,9 @@ addpath('../../Fitness landscape');
 addpath('../../Simulation_code');
 
 downloadDate = '20210120';
-fitnessModel = 'sigmoid';
-distribution = 'empirical';
+fitnessModel = 'multiplicative';
+distribution = 'normal';
+wholeGenome = false;
 sigma0 = 0.1;
 lambda = 0;
 
@@ -34,9 +35,7 @@ else
     error('Invalid fitness model.')
 end
 
-fileName = ['mismatchBooleanOverTime',downloadDate,'_t3.mat'];
-load(fileName)
-
+load(['mismatchBooleanOverTime',downloadDate,'_t3.mat'])
 mismatchBoolean = mismatchBooleanOverTime(end);
 [beta, ~] = logisticRegressionProteins(mismatchBoolean, lambda);
 sigma = zeros(1,length(proteinNames)) + sigma0;
@@ -360,7 +359,11 @@ saveas(gcf,'Figures/NumSeqsvsTime.pdf')
 %% Distribution of fitness effects
 
 % Load simulated data
-load(['Data/simulatedDFE_',fitnessModel,'_',distribution,'.mat'])
+if ~wholeGenome
+    load(['Data/simulatedDFE_',fitnessModel,'_',distribution,'.mat'])
+else
+    load(['Data/simulatedDFE_wholeGenome_',fitnessModel,'_',distribution,'.mat'])
+end
 r0 = 1.5;
 
 colorbar = jet;
@@ -378,7 +381,7 @@ xlabel('Fitness, W')
 ylabel('Probability')
 xlim()
 xticks(0:0.25:1.25)
-ylim([0 1])
+ylim([0 0.3])
 yticks(0:0.05:0.2)
 set(gca, 'FontSize',9, 'LineWidth',1)
 set(gcf,'Color','w','Units','inches','Position',[1 1 2.165 1.74])

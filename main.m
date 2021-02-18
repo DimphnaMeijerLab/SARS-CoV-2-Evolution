@@ -26,7 +26,7 @@ ylabel('Count')
 % likely not feasible to do on a single computer the values of nPoints and
 % nIter are reduced.
 
-PRCC_mat, pval_mat = sensitivity_analysis(10, 2);
+[PRCC_mat, pval_mat, params_fields] = sensitivity_analysis(10, 2);
 
 % PRCC matrix, ignore non-significant results (p-val>0.05)
 data_fields_plot = {'Peak time', 'Peak load', 'End time', 'stat(r)', 'max(r)', 'stat(diversity)', 'stat(d)'};

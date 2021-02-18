@@ -1,4 +1,4 @@
-function [PRCC_mat, pval_mat] = sensitivity_analysis(nPoints, nIter)
+function [PRCC_mat, pval_mat, params_fields] = sensitivity_analysis(nPoints, nIter)
         %------------------------------------------------------------------
         % Sensitivity analysis function to run parameter sets sampled with 
         % nPoints parameter sets in the hypercube. For each parameter set

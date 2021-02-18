@@ -5,24 +5,38 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         % INPUT PARAMETERS
         %-----------------
         %
-        % nr: int
-        % Simulation number, used for random number generator.
+        %   nr: int
+        %   Simulation number, used for random number generator.
         %
-        % U0: int
-        % Initial number of not-infected cells.
+        %   U0: int
+        %   Initial number of not-infected cells.
         %
-        % mu_array: double or array of doubles.
-        % Array with mutation rates you want to test. If you want to do one
-        % single simulation, mu_array is a single numbers.
+        %   mu_array: double or array of doubles.
+        %   Array with mutation rates you want to test. If you want to do one
+        %   single simulation, mu_array is a single numbers.
         %
-        % a: double
-        % Infection rate.
+        % Optional input parameters:
+        %---------------------------
         %
-        % b: double.
-        % Clearance/death rate.
+        %   a: double
+        %   Infection rate.
         %
-        % r0: double.
-        % Replication rate of reference sequence.
+        %   b: double.
+        %   Clearance/death rate.
+        %
+        %   r0: double.
+        %   Replication rate of reference sequence.
+        %
+        %   distribution: string; choose from 'normal' or 'gamma' or 'empirical'.
+        %   Probability distribution of the fitness of newly emerged strains.
+        %   Default is the normal distribution.
+        %
+        %   fitnessFunction: function handle
+        %   Function to calculate fitness. The first input argument must be b (a
+        %   2x1 column vector with b0 and b1, the outputs of the logistc fit).
+        %   The second input argument must be the hamming distance, d. 
+        %   Default is the multiplicative fitness function.
+        %   
         %
         % OUTPUT PARAMETERS
         %-----------------
@@ -81,14 +95,14 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         tic
         myStream = RandStream('mlfg6331_64', 'Seed', nr);
         
-        %% Get protein and genome reference sequences #####################
-        [gRefSeq, pRefSeq, pNames, proteinLocation, ~] = getRefSeq();
-        translateCodon = geneticcode();
-        [beta, sigma] = logisticRegressionProteins(mismatchBoolean, lambda);
-
-        %% Initialize #####################################################
+        %% Optional parameters ############################################
+        
+        % specify fitness function
         distribution = 'normal';
+        fitnessFunction = @multiplicative_fitness;
+        lambda = 0;
 
+        % specify replication dynamics
         if U0 == 1e4
             r0 = 1.5 ;
             a =  4.5e-3 ;
@@ -108,21 +122,41 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
             c =  0.9 ;
             V0 = 4e3;
         end
-        
-        alpha = 1;
-        
-        % Optionally specify a, b, c and r0 values
+                
         p = inputParser;
+        isFunction = @(f) isa(f,'function_handle');
         addParameter(p, 'a', a, @isnumeric)
         addParameter(p, 'b', b, @isnumeric)
         addParameter(p, 'c', c, @isnumeric)
         addParameter(p, 'r0', r0, @isnumeric)
+        addParameter(p, 'lambda', lambda, @isnumeric)
+        addParameter(p, 'distribution', distribution, @(s)isstring(s))
+        addParameter(p, 'fitnessFunction', fitnessFunction, isFunction)
         disp(varargin)
+        
         parse(p, varargin{:})
         a = p.Results.a;
         b = p.Results.b;
         c = p.Results.c;
         r0 = p.Results.r0;
+        lambda = p.Results.lambda;
+        distribution = p.Results.distribution;
+        fitnessFunction = p.Results.fitnessFunction;
+        
+        %% Get protein and genome reference sequences #####################
+        refSeqStructure = load('refSeq.mat');
+        pNames = refSeqStructure.pNames;
+        gRefSeq = refSeqStructure.gRefSeq;
+        pRefSeq = refSeqStructure.pRefSeq;
+        proteinLocation = refSeqStructure.proteinLocation;
+        translateCodon = geneticcode();
+        
+        %% Get logistic regression results ################################
+        mismatchBooleanStructure = load('mismatchBoolean20210120_t3.mat');
+        mismatchBoolean = mismatchBooleanStructure.mismatchBooleanOverTime;
+        [beta, sigma] = logisticRegressionProteins(mismatchBoolean, lambda);
+
+        %% Initialize #####################################################
 
         params = struct();
         params.('U0') = U0;
@@ -151,7 +185,6 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
             fprintf('\n Iteration %d: U0=%d \t V0=%d \t a=%f \t b=%f \t c=%f \t r0=%f \t mu=%e \n', k, U0, V0, a, b, c, r0, mu)
             
             % initialize
-            disp(['Mutation rate: ', num2str(mu)])
             U = U0;                                                                % initial number of uninfected cells.
             seq_loc = cell(1,S); aseq_loc = cell(1,S);                            
             seq_mut = cell(1,S); aseq_mut = cell(1,S);
@@ -264,7 +297,7 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
                             sigma, r0, ...
                             gRefSeq, L, pRefSeq, beta, proteinLocation, translateCodon, ...
                             aseqUniq_loc, aseqUniq_mut, aseqUniq_nMut, ...
-                            aseqUniq_n, aseqUniq_i, aseqUniq_r, distribution);
+                            aseqUniq_n, aseqUniq_i, aseqUniq_r, distribution, fitnessFunction);
                         break
                      end
                      
@@ -389,7 +422,6 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
             data(k).U = data_collect(:,4);
             data(k).I_sum = data_collect(:,5);
             data(k).V_sum = data_collect(:,6);
-            data(k).alpha = alpha;
             data(k).Mu = mu;
             data(k).t_end = t;
             data(k).ntot = ntot;

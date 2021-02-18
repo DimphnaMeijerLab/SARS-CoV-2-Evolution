@@ -10,7 +10,7 @@ replicate(i0, myStream, ...
     sigma, r0, ...
     gRefSeq, L, pRefSeq, beta, proteinLocation, translateCodon, ...
     aseqUniq_loc, aseqUniq_mut, aseqUniq_nMut, ...
-    aseqUniq_n, aseqUniq_i, aseqUniq_r, distribution)
+    aseqUniq_n, aseqUniq_i, aseqUniq_r, distribution, fitnessFunction)
 
     %----------------------------------------------------------------------
     % This function is called if a virus of strain i0 replicates. During the
@@ -191,7 +191,7 @@ replicate(i0, myStream, ...
             end
         end
     end
-    r(newLoc) = replicationRate(di, r0, sigma, beta, distribution);
+    r(newLoc) = replicationRate(di, r0, distribution, fitnessFunction, sigma, beta);
     nAA = nAA + 1; % number of amino acids currently present
     
     newLoc_aseqUniq = find(~existing_logical, 1); % location of new strain

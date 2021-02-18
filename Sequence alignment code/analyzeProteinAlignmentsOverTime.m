@@ -30,19 +30,21 @@
 %   were downloaded from the GISAID database.
 %--------------------------------------------------------------------------
 
-clear all
-close all
+%clear all
+%close all
 
 downloadDate = '20210120';
 startT = datetime('01-DEC-2019');
 endT = datetime('21-JAN-2021');
-
 dT = 7;   % time between subsequent timepoints in days
+timePoints = [startT:dT:endT, endT];
+
+thresholdArray = 3;
 
 %% Load data
 tic
 file = ['proteinAlignments', downloadDate,'.mat'];
-load(file);
+%load(file);
 disp(['data loaded after ', num2str(toc),' seconds.'])
 %%
 nSeqs = length(alignments);
@@ -56,11 +58,9 @@ for s = 1:length(alignments)
     dates(s) = alignments(s).LocusModificationDate;
 end
 
-
 %% Loop over timepoints, update mismatches for each time bin, and get the
 % mismatchboolean at each timepoint. Do this for different threshold
 % levels.
-thresholdArray = [0, 1, 2, 3, 4, 5];
 
 for t = 1:length(thresholdArray)
     threshold = thresholdArray(t);
@@ -70,7 +70,6 @@ for t = 1:length(thresholdArray)
     % Initialize arrays
     IDs = 1:length(alignments);
     mismatches = initMismatches(proteinNames, alignments, IDs);
-    timePoints = [startT:dT:endT, endT];
     numTimeBins = length(timePoints) - 1;
     mismatchBooleanOverTime = struct();
     
@@ -204,6 +203,7 @@ function [mismatches,nSeqPerProtein] = findMismatches(proteinNames, alignments, 
         end
     end
 end
+
 %%
 function mismatchBoolean = fillMismatchBoolean(proteinNames, alignments, mismatches, threshold)
     %----------------------------------------------------------------------

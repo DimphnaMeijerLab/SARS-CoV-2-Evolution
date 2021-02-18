@@ -10,12 +10,13 @@ addpath('../../Fitness landscape')
 %% Specification of simulation
 nSim = 1e4;         % number of simulations
 r0 = 1.5;           % replication rate of WT sequence
-maxD = 12;          % maximal hamming distance
+maxD = 40;          % maximal hamming distance
 downloadDate = '20210120';
 lambda = 0;
 sigma = 0.1;
-distribution = 'empirical';
-fitnessModel = 'sigmoid';
+distribution = 'normal';
+fitnessModel = 'truncation';
+wholeGenome = true;
 
 %% Define fitness function
 
@@ -32,18 +33,26 @@ else
 end
 
 %% Get reference sequences, beta, sigma
-fileName = ['mismatchBooleanOverTime',downloadDate,'_t3.mat'];
-load(fileName)
-mismatchBoolean = mismatchBooleanOverTime(end);
 refseq = load('refSeq.mat');
 pRefSeq = refseq.pRefSeq;
 pNames = refseq.pNames;
 proteinLocation = refseq.proteinLocation;
-
-[beta, ~] = logisticRegressionProteins(mismatchBoolean, lambda);
-
 La = length(pRefSeq);
 nP = length(pNames);
+
+if ~wholeGenome
+    fileName = ['mismatchBooleanOverTime',downloadDate,'_t3.mat'];
+    load(fileName)
+    mismatchBoolean = mismatchBooleanOverTime(end);
+    [beta, ~] = logisticRegressionProteins(mismatchBoolean, lambda);
+    outputFile = ['Data/simulatedDFE_',fitnessModel,'_',distribution,'.mat'];
+else
+    fileName = ['mismatchBooleanOverTime_WholeGenome_',downloadDate,'_t3.mat'];
+    load(fileName)
+    mismatchBoolean = mismatchBooleanOverTime(end,:);
+    [beta, ~] = logisticRegressionWholeGenome(mismatchBoolean, lambda);
+    outputFile = ['Data/simulatedDFE_wholeGenome_',fitnessModel,'_',distribution,'.mat'];
+end
 
 %% Simulate
 r = zeros(maxD, nSim);
@@ -65,9 +74,11 @@ for d = 1:maxD
             iMut = mutations(j, i);
             di(iMut) = di(iMut) + 1;
         end
+        if wholeGenome % sum all 
+            di = sum(di);
+        end
         r(d, i) = replicationRate(di, r0, distribution, fitnessFunction, sigma, beta);
     end
 end
 
-save(['Data/simulatedDFE_',fitnessModel,'_',distribution,'.mat'], 'r', 'nSim', 'maxD', 'r0')
-
+save(outputFile, 'r', 'nSim', 'maxD', 'r0')
