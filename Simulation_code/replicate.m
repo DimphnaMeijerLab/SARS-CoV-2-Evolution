@@ -117,6 +117,9 @@ replicate(i0, myStream, ...
         % apply mutations on gRefSeq codons
         gRefSeqEndCodon = newly_affected_codon_unique(iCodon)*3;
         gRefSeqStartCodon = gRefSeqEndCodon - 2;
+        if gRefSeqEndCodon > L
+            disp('nooo')
+        end
         gRefSeqCodon = gRefSeq(gRefSeqStartCodon:gRefSeqEndCodon);
         iCodon_affected_nt = codonIndex_seq_affected == newly_affected_codon_unique(iCodon); % select all mutations which affect current codon
         newsequence_loc_affected_iCodon = mod(newsequence_loc_affected(iCodon_affected_nt)-1, 3)+1;
