@@ -4,7 +4,7 @@ function run_gillespie_parallel(x1, x2_max)
 
     % init
     U0 = 1e4;
-    mu_array = 1e-6;
+    mu = 1e-6;
     distribution = 'normal';
     sigma = 0.1;
     wholeGenome = false;
@@ -14,7 +14,7 @@ function run_gillespie_parallel(x1, x2_max)
          nr = [x1, num2str(x2)];
          fprintf(['\n Starting iteration nr -> ',nr,' \n'])
          % run gillespie
-         [data, params] = gillespie(str2double(nr), U0, mu_array, ...
+         [data, params] = gillespie(str2double(nr), U0, mu, ...
                                     'distribution', distribution, ...
                                     'sigma', sigma, ...
                                     'fitnessFunction', fitnessFunction, ...
