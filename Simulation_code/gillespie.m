@@ -19,24 +19,39 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         %---------------------------
         %
         %   a: double
-        %   Infection rate.
+        %   Infection rate. Default depends on U0.
         %
         %   b: double.
-        %   Clearance/death rate.
+        %   Clearance rate of viral particles. Default is 0.9.
+        %
+        %   c: double.
+        %   Death rate of infected cells. Default is 0.9.
         %
         %   r0: double.
-        %   Replication rate of reference sequence.
+        %   Replication rate of reference sequence. Default is 1.5.
+        %
+        %   lambda: double
+        %   Penalization parameter of ridge regression. Default is 0 (no
+        %   rigde regression).
         %
         %   distribution: string; choose from 'normal' or 'gamma' or 'empirical'.
         %   Probability distribution of the fitness of newly emerged strains.
         %   Default is the normal distribution.
         %
+        %   sigma: double
+        %   Standard deviation of normal / gamma distribution in DFE.
+        %   Default is the error of fit of the logistic regression.
+        %   
         %   fitnessFunction: function handle
         %   Function to calculate fitness. The first input argument must be b (a
         %   2x1 column vector with b0 and b1, the outputs of the logistc fit).
         %   The second input argument must be the hamming distance, d. 
         %   Default is the multiplicative fitness function.
-        %   
+        %
+        %   wholeGenome: logical
+        %   Specifies wether the logistic regression is done per protein
+        %   (if wholeGenome is false) or on the entire genome. Default is
+        %   false.
         %
         % OUTPUT PARAMETERS
         %-----------------
@@ -94,15 +109,34 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         
         tic
         myStream = RandStream('mlfg6331_64', 'Seed', nr);
-        
+
         %% Optional parameters ############################################
         
         % specify fitness function
         distribution = 'normal';
         fitnessFunction = @multiplicative_fitness;
         lambda = 0;
+        
+        %% Get logistic regression results ################################
+        
+        % specify which mismatchboolean to use to to logistic regression on
+        mismatchBoolFileName = 'mismatchBoolean20210120_t3.mat';
+        logisticRegressionFunction = @logisticRegressionProteins;
+        if any(strcmp(varargin,'wholeGenome'))
+            index = find( strcmp(varargin,'wholeGenome') );
+            if varargin{index + 1} == true
+                mismatchBoolFileName = ['mismatchBoolean_',...
+                                        'WholeGenome_',...
+                                        '20210120_t3.mat'];
+                logisticRegressionFunction = @logisticRegressionWholeGenome;
+            end
+        end
+        % load mismatchboolean and do logistic regression
+        mismatchBooleanStructure = load(mismatchBoolFileName);
+        mismatchBoolean = mismatchBooleanStructure.mismatchBooleanOverTime;
+        [beta, sigma_proteins] = logisticRegressionFunction(mismatchBoolean, lambda);
 
-        % specify replication dynamics
+        % specify default replication dynamics
         if U0 == 1e4
             r0 = 1.5 ;
             a =  4.5e-3 ;
@@ -111,7 +145,7 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
             V0 = 40;
         elseif U0 == 1e5
             r0 = 1.5 ;
-            a =  4.5e-04 ;
+            a =  4.5e-4 ;
             b =  0.9 ;
             c =  0.9 ;
             V0 = 400;
@@ -130,9 +164,10 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         addParameter(p, 'c', c, @isnumeric)
         addParameter(p, 'r0', r0, @isnumeric)
         addParameter(p, 'lambda', lambda, @isnumeric)
-        addParameter(p, 'distribution', distribution, @(s)isstring(s))
+        addParameter(p, 'distribution', distribution, @(s)ischar(s))
+        addParameter(p, 'sigma', sigma_proteins, @isnumeric)
         addParameter(p, 'fitnessFunction', fitnessFunction, isFunction)
-        disp(varargin)
+        addParameter(p, 'wholeGenome', false, @islogical)
         
         parse(p, varargin{:})
         a = p.Results.a;
@@ -141,8 +176,10 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         r0 = p.Results.r0;
         lambda = p.Results.lambda;
         distribution = p.Results.distribution;
+        sigma = p.Results.sigma;
         fitnessFunction = p.Results.fitnessFunction;
-        
+        wholeGenome = p.Results.wholeGenome;
+                
         %% Get protein and genome reference sequences #####################
         refSeqStructure = load('refSeq.mat');
         pNames = refSeqStructure.pNames;
@@ -150,11 +187,6 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         pRefSeq = refSeqStructure.pRefSeq;
         proteinLocation = refSeqStructure.proteinLocation;
         translateCodon = geneticcode();
-        
-        %% Get logistic regression results ################################
-        mismatchBooleanStructure = load('mismatchBoolean20210120_t3.mat');
-        mismatchBoolean = mismatchBooleanStructure.mismatchBooleanOverTime;
-        [beta, sigma] = logisticRegressionProteins(mismatchBoolean, lambda);
 
         %% Initialize #####################################################
 
@@ -166,8 +198,12 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         params.('c') = c;
         params.('V0') = V0;
         params.('mu') = mu_array;
+        params.('lambda') = lambda;
+        params.('distribution') = distribution;
+        params.('sigma') = sigma;
+        params.('fitnessFunction') = func2str(fitnessFunction);
 
-        T = inf;   
+        T = inf;
         
         % Follows
         N_mu = length(mu_array);        % number of mutation rates to test
@@ -182,7 +218,7 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
             
             mu = mu_array(k);                                                     % mutation rate
             
-            fprintf('\n Iteration %d: U0=%d \t V0=%d \t a=%f \t b=%f \t c=%f \t r0=%f \t mu=%e \n', k, U0, V0, a, b, c, r0, mu)
+            fprintf('\n Parameters: %d: U0=%d \t V0=%d \t a=%f \t b=%f \t c=%f \t r0=%f \t mu=%e \n', k, U0, V0, a, b, c, r0, mu)
             
             % initialize
             U = U0;                                                                % initial number of uninfected cells.
@@ -297,7 +333,7 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
                             sigma, r0, ...
                             gRefSeq, L, pRefSeq, beta, proteinLocation, translateCodon, ...
                             aseqUniq_loc, aseqUniq_mut, aseqUniq_nMut, ...
-                            aseqUniq_n, aseqUniq_i, aseqUniq_r, distribution, fitnessFunction);
+                            aseqUniq_n, aseqUniq_i, aseqUniq_r, distribution, fitnessFunction, wholeGenome);
                         break
                      end
                      

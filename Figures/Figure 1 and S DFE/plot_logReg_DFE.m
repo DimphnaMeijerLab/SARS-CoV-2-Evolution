@@ -9,16 +9,17 @@
 %   3) Distribution of submissions on GISAID database;
 %   4) Distribution of fitness effects.
 
+
 %% Load alignment data & do logistic regression
 addpath('../../Data');
 addpath('../../Fitness landscape');
-addpath('../../Simulation_code');
+%addpath('../../Simulation_code');
 
 downloadDate = '20210120';
 fitnessModel = 'multiplicative';
 distribution = 'normal';
 wholeGenome = false;
-sigma0 = 0.1;
+sigma0 = 0.05;
 lambda = 0;
 
 %% Define fitness function and do logistic regression
@@ -360,9 +361,9 @@ saveas(gcf,'Figures/NumSeqsvsTime.pdf')
 
 % Load simulated data
 if ~wholeGenome
-    load(['Data/simulatedDFE_',fitnessModel,'_',distribution,'.mat'])
+    load(['Data/simulatedDFE_',fitnessModel,'_',distribution,'_s',num2str(sigma0),'.mat'])
 else
-    load(['Data/simulatedDFE_wholeGenome_',fitnessModel,'_',distribution,'.mat'])
+    load(['Data/simulatedDFE_wholeGenome_',fitnessModel,'_',distribution,'_s',num2str(sigma0),'.mat'])
 end
 r0 = 1.5;
 
