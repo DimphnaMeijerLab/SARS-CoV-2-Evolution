@@ -604,8 +604,6 @@ function gillespie_transmission(nr, U0, mu, N_ind, varargin)
             titer.V_sum = data_collect(:,6);
             titer.Mu = mu;
             titer.t_end = t;
-            titer.ntot = ntot;
-            titer.nAA = nAA;
             titer.statY = statY(1:maxY);
             titer.relativeY = relativeY(:, 1:maxY);
             titer.statD = statD;
