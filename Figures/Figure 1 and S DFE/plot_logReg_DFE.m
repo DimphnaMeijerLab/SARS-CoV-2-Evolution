@@ -12,14 +12,16 @@
 
 %% Load alignment data & do logistic regression
 addpath('../../Data');
-addpath('../../Fitness landscape');
-%addpath('../../Simulation_code');
+%addpath('../../Fitness landscape');
+addpath('../../Simulation_code');
 
 downloadDate = '20210120';
 fitnessModel = 'multiplicative';
 distribution = 'normal';
 wholeGenome = false;
-sigma0 = 0.05;
+sigma0 = 0.1;
+num_simulations = 1e6;
+max_hamming_distance = 34;             % max hamming distance to plot. Min is 1, max is 40.
 lambda = 0;
 
 %% Define fitness function and do logistic regression
@@ -361,11 +363,12 @@ saveas(gcf,'Figures/NumSeqsvsTime.pdf')
 
 % Load simulated data
 if ~wholeGenome
-    load(['Data/simulatedDFE_',fitnessModel,'_',distribution,'_s',num2str(sigma0),'.mat'])
+    load(['Data/simulatedDFE_',fitnessModel,'_',distribution,'_s',num2str(sigma0),'_1e6.mat'])
 else
     load(['Data/simulatedDFE_wholeGenome_',fitnessModel,'_',distribution,'_s',num2str(sigma0),'.mat'])
 end
 r0 = 1.5;
+maxD = max_hamming_distance;
 
 colorbar = jet;
 
@@ -390,7 +393,7 @@ saveas(gcf,'Figures/DFE1.pdf')
 
 fig = figure();
 %subplot(2,1,2)
-v = violinplot(r' / r0);
+v = violinplot(r(1:maxD,:)' / r0);
 % Specify color of violins
 
 for d = 1:maxD
@@ -414,16 +417,16 @@ saveas(gcf,'Figures/ViolinplotFitnessLandscape.pdf')
 alfa = - beta(2,:);
 d0 = - beta(1,:) ./ beta(2,:);
 
-C = cell(length(pNames), 4);
-for p = 1:length(pNames)
-    protein = pNames{p};
+C = cell(length(proteinNames), 4);
+for p = 1:length(proteinNames)
+    protein = proteinNames{p};
     C{p,1} = protein;
     C{p,2} = length(mismatchBoolean.(protein));
     C{p,3} = d0(p);
     C{p,4} = alfa(p);
-    C{p,5} = sigma(p);
-    C{p,6} = nSeqPerProtein.(protein);
+    %C{p,5} = sigma(p);
+    %C{p,6} = nSeqPerProtein.(protein);
 end
-T = cell2table(C,'VariableNames',{'name','length','d0','alfa','sigma','nSeqs'});
+T = cell2table(C,'VariableNames',{'name','length','d0','alfa'});
 writetable(T,'table1.csv')
 
