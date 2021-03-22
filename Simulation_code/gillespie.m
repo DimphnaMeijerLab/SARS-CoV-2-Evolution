@@ -1,4 +1,4 @@
-function [data, params] = gillespie(nr, U0, mu_array, varargin)
+function [data, params] = gillespie(nr, U0, mu_array, downloadDate, mismatchThreshold, varargin)
         %------------------------------------------------------------------
         % Simulate a viral infection with the Gillespi algorithm.
         %
@@ -106,7 +106,6 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         %                   the simulation.
         %
         %------------------------------------------------------------------
-        
         tic
         myStream = RandStream('mlfg6331_64', 'Seed', nr);
 
@@ -120,20 +119,24 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         %% Get logistic regression results ################################
         
         % specify which mismatchboolean to use to to logistic regression on
-        mismatchBoolFileName = 'mismatchBoolean20210120_t3.mat';
+        mismatchBoolFileName = ['mismatchBoolean',...
+                                downloadDate, '_', ...
+                                mismatchThreshold, '.mat'];
         logisticRegressionFunction = @logisticRegressionProteins;
         if any(strcmp(varargin,'wholeGenome'))
             index = find( strcmp(varargin,'wholeGenome') );
             if varargin{index + 1} == true
-                mismatchBoolFileName = ['mismatchBoolean_',...
-                                        'WholeGenome_',...
-                                        '20210120_t3.mat'];
+                mismatchBoolFileName = ['mismatchBoolean',...
+                                        downloadDate, '_', ...
+                                        mismatchThreshold, ...
+                                        '_WholeGenome.mat'];                                    
                 logisticRegressionFunction = @logisticRegressionWholeGenome;
             end
         end
+        
         % load mismatchboolean and do logistic regression
         mismatchBooleanStructure = load(mismatchBoolFileName);
-        mismatchBoolean = mismatchBooleanStructure.mismatchBooleanOverTime;
+        mismatchBoolean = mismatchBooleanStructure.mismatchBoolean;
         [beta, sigma_proteins] = logisticRegressionFunction(mismatchBoolean, lambda);
 
         % specify default replication dynamics
@@ -181,7 +184,7 @@ function [data, params] = gillespie(nr, U0, mu_array, varargin)
         wholeGenome = p.Results.wholeGenome;
                 
         %% Get protein and genome reference sequences #####################
-        refSeqStructure = load('refSeq.mat');
+        refSeqStructure = load(['refSeq',downloadDate,'.mat']);
         pNames = refSeqStructure.pNames;
         gRefSeq = refSeqStructure.gRefSeq;
         pRefSeq = refSeqStructure.pRefSeq;
