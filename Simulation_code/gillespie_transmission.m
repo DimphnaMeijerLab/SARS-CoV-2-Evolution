@@ -1,4 +1,4 @@
-function gillespie_transmission(nr, U0, mu, N_ind, varargin)
+function gillespie_transmission(nr, U0, mu, downloadDate, mismatchThreshold, varargin)
         %------------------------------------------------------------------
         % Simulate a viral infection with the Gillespi algorithm.
         %
@@ -122,20 +122,23 @@ function gillespie_transmission(nr, U0, mu, N_ind, varargin)
         %% Get logistic regression results ################################
         
         % specify which mismatchboolean to use to to logistic regression on
-        mismatchBoolFileName = 'mismatchBoolean20210120_t3.mat';
+        mismatchBoolFileName = ['mismatchBoolean',...
+                                downloadDate, '_', ...
+                                mismatchThreshold, '.mat'];
         logisticRegressionFunction = @logisticRegressionProteins;
         if any(strcmp(varargin,'wholeGenome'))
             index = find( strcmp(varargin,'wholeGenome') );
             if varargin{index + 1} == true
-                mismatchBoolFileName = ['mismatchBoolean_',...
-                                        'WholeGenome_',...
-                                        '20210120_t3.mat'];
+                mismatchBoolFileName = ['mismatchBoolean',...
+                                        downloadDate, '_', ...
+                                        mismatchThreshold, ...
+                                        '_WholeGenome.mat'];                                    
                 logisticRegressionFunction = @logisticRegressionWholeGenome;
             end
         end
         % load mismatchboolean and do logistic regression
         mismatchBooleanStructure = load(mismatchBoolFileName);
-        mismatchBoolean = mismatchBooleanStructure.mismatchBooleanOverTime;
+        mismatchBoolean = mismatchBooleanStructure.mismatchBoolean;
         [beta, sigma_proteins] = logisticRegressionFunction(mismatchBoolean, lambda);
 
         % specify default replication dynamics
@@ -183,7 +186,7 @@ function gillespie_transmission(nr, U0, mu, N_ind, varargin)
         wholeGenome = p.Results.wholeGenome;
                 
         %% Get protein and genome reference sequences #####################
-        refSeqStructure = load('refSeq.mat');
+        refSeqStructure = load(['refSeq',downloadDate,'.mat']);
         pNames = refSeqStructure.pNames;
         gRefSeq = refSeqStructure.gRefSeq;
         pRefSeq = refSeqStructure.pRefSeq;
@@ -208,7 +211,7 @@ function gillespie_transmission(nr, U0, mu, N_ind, varargin)
         T = inf;
         
         % Follows
-        %N_mu = length(mu_array);        % number of mutation rates to test
+        %N_mu = length(mu_array);       % number of mutation rates to test
         L = length(gRefSeq);            % length of genome sequence
         La = length(pRefSeq);           % length of protein sequence
 
@@ -244,10 +247,15 @@ function gillespie_transmission(nr, U0, mu, N_ind, varargin)
         trans_Tcells = zeros(1, S);
         trans_Tcells_perStrain = zeros(1, S);
 
-        %% Start for-loop over mutation rates #############################
-        for k = 1:N_ind
-                        
-            fprintf('\n Iteration %d: U0=%d \t V0=%d \t a=%f \t b=%f \t c=%f \t r0=%f \t mu=%e \n', k, U0, V0, a, b, c, r0, mu)
+        % There are 122 days between 01-dec 2019 and 01-april 2020.
+        % Stop simulation if the time exceeds 01 april 2020.
+        current_time = 0;
+        max_time = 122;
+        k = 0;
+        %% Start while-loop over  #############################
+        while current_time < max_time
+            k = k + 1;
+            fprintf('\n Passage %d: U0=%d \t V0=%d \t a=%f \t b=%f \t c=%f \t r0=%f \t mu=%e \n', k, U0, V0, a, b, c, r0, mu)
          	
             % initialize
             U = U0;                                                                     % initial number of uninfected cells.
@@ -297,7 +305,9 @@ function gillespie_transmission(nr, U0, mu, N_ind, varargin)
             maxR(1) = max(r);
             diversity = 1 - sum((V/sum(V)) .^2);
             
-            t_transmission = t_L + t_I + rand;
+            t_transmission = t_L + t_I * rand;
+            current_time = current_time + t_transmission;
+            
             transmissionBoolean = false;
             
             transmission = struct;
@@ -476,29 +486,29 @@ function gillespie_transmission(nr, U0, mu, N_ind, varargin)
 
                     tempY = Y(1:m, :);
 
-                    % sample a random pool of 400 viruses.
-                    totV = sum(V);
-                    pool = randi(totV, [1, V0]);
+                    % sample a random pool of V0 viruses.
+                    tot_V = sum(V);
+                    pool = randi(tot_V, [1, V0]);
                     % initiate arrays for transmission
-                    transV = zeros(1, S); 
-                    transR = zeros(1, S);
-                    transD = zeros(length(pNames), S);
-                    transDtot = zeros(1, S);
+                    trans_V = zeros(1, S);
+                    trans_r = zeros(1, S);
+                    trans_d = zeros(length(pNames), S);
+                    trans_dtot = zeros(1, S);
 
-                    transSeq_loc = cell(1,S);
-                    transAseq_loc = cell(1,S);
-                    transSeq_mut = cell(1,S);
-                    transAseq_mut = cell(1,S);
-                    transSeq_nMut = zeros(1,S);
-                    transAseq_nMut = zeros(1,S);
+                    trans_seq_loc = cell(1,S);
+                    trans_aseq_loc = cell(1,S);
+                    trans_seq_mut = cell(1,S);
+                    trans_aseq_mut = cell(1,S);
+                    trans_seq_nMut = zeros(1,S);
+                    trans_aseq_nMut = zeros(1,S);
 
-                    transAseqUniq_loc = cell(1,S);
+                    trans_aseqUniq_loc = cell(1,S);
                     % add 'dummy' 1 values:
-                    transAseqUniq_mut = cell(1,S); transAseqUniq_mut(:) = {'1'};
-                    transAseqUniq_nMut = zeros(1,S);
-                    transAseqUniq_n = zeros(1,S); 
-                    transAseqUniq_i = cell(1,S); 
-                    transAseqUniq_r = zeros(1,S);
+                    trans_aseqUniq_mut = cell(1,S); transAseqUniq_mut(:) = {'1'};
+                    trans_aseqUniq_nMut = zeros(1,S);
+                    trans_aseqUniq_n = zeros(1,S); 
+                    trans_aseqUniq_i = cell(1,S); 
+                    trans_aseqUniq_r = zeros(1,S);
 
                     g = 0;
                     p = 0;
@@ -508,69 +518,66 @@ function gillespie_transmission(nr, U0, mu, N_ind, varargin)
                         numTransmitted = sum(pool > g & pool <= newg);
                         if numTransmitted > 0
                             p = p + 1;
-                            transV(p) = numTransmitted;
-                            transR(p) = r(i);
-                            transD(:,p) = d(:,i);
-                            transDtot(p) = dtot(i);
+                            trans_V(p) = numTransmitted;
+                            trans_r(p) = r(i);
+                            trans_d(:,p) = d(:,i);
+                            trans_dtot(p) = dtot(i);
 
-                            transSeq_loc{p} = seq_loc{i};
-                            transSeq_mut{p} = seq_mut{i};
-                            transSeq_nMut(p) = seq_nMut(i);
+                            trans_seq_loc{p} = seq_loc{i};
+                            trans_seq_mut{p} = seq_mut{i};
+                            trans_seq_nMut(p) = seq_nMut(i);
 
-                            transAseq_nMut(p) = aseq_nMut(i);
-                            transAseq_loc{p} = aseq_loc{i};
-                            transAseq_mut{p} = aseq_mut{i};
+                            trans_aseq_nMut(p) = aseq_nMut(i);
+                            trans_aseq_loc{p} = aseq_loc{i};
+                            trans_aseq_mut{p} = aseq_mut{i};
 
                             % Unique arrays:
                             alreadyPresent = false;
                             for j = 1 : nu
-                                if isequal(transAseqUniq_loc{j}, aseq_loc{i})
-                                    if isequal(transAseqUniq_mut{j}, aseq_mut{i})
+                                if isequal(trans_aseqUniq_loc{j}, aseq_loc{i})
+                                    if isequal(trans_aseqUniq_mut{j}, aseq_mut{i})
                                         alreadyPresent = true;
-                                        transAseqUniq_n(j) = transAseqUniq_n(j) + numTransmitted;
-                                        transAseqUniq_i{j} = [transAseqUniq_i{j}, p];
+                                        trans_aseqUniq_n(j) = trans_aseqUniq_n(j) + numTransmitted;
+                                        trans_aseqUniq_i{j} = [trans_aseqUniq_i{j}, p];
                                         break % for loop over unique AA seqs
                                     end  
                                 end
                             end
 
                             if ~alreadyPresent
-                                transAseqUniq_loc{nu} = aseq_loc{i};
-                                transAseqUniq_mut{nu} = aseq_mut{i};
-                                transAseqUniq_nMut(nu) = aseq_nMut(i);
-                                transAseqUniq_n(nu) = numTransmitted;
-                                transAseqUniq_i{nu} = p;
-                                transAseqUniq_r(nu) = r(i);
+                                trans_aseqUniq_loc{nu} = aseq_loc{i};
+                                trans_aseqUniq_mut{nu} = aseq_mut{i};
+                                trans_aseqUniq_nMut(nu) = aseq_nMut(i);
+                                trans_aseqUniq_n(nu) = numTransmitted;
+                                trans_aseqUniq_i{nu} = p;
+                                trans_aseqUniq_r(nu) = r(i);
                                 nu = nu + 1;
                             end                    
                         end
                         g = newg;
                     end
                     % remove the 'dummy' 1 values again
-                    transAseqUniq_mut(strcmp(transAseqUniq_mut, '1')) = {[]};
+                    trans_aseqUniq_mut(strcmp(trans_aseqUniq_mut, '1')) = {[]};
 
                     % transmission Y array:
-                    alive = (transV ~= 0);
-                    shortV = transV(alive);
-                    transY = zeros(S, La + 1);                                     	% number of free viral particles per strain
-                    for j = 1:max(transDtot) + 1
+                    alive = (trans_V ~= 0);
+                    short_V = trans_V(alive);
+                    trans_Y = zeros(S, La + 1);                             % number of free viral particles per strain
+                    for j = 1:max(trans_dtot) + 1
                         dist = j - 1;
-                        d_logical = (transDtot(alive) == dist);
-                        sumV = sum(shortV(d_logical));
-                        transY(1,j) = sumV;
+                        d_logical = (trans_dtot(alive) == dist);
+                        sum_V = sum(short_V(d_logical));
+                        trans_Y(1,j) = sum_V;
                     end      
-                    maxV = find(transV, 1,'last');
+                    max_V = find(trans_V, 1,'last');
 
-                    transmission.('V') = transV(1:maxV);
-                    transmission.('r') = transR(1:maxV);
-                    transmission.('seq_loc') = transSeq_loc(1:maxV);
-                    transmission.('seq_mut') = transSeq_mut(1:maxV);
+                    transmission.('V') = trans_V(1:max_V);
+                    transmission.('r') = trans_r(1:max_V);
+                    transmission.('seq_loc') = trans_seq_loc(1:max_V);
+                    transmission.('seq_mut') = trans_seq_mut(1:max_V);
                     transmission.('tTransmission') = t_transmission;
-                    transmission.('transD') = transD(:, 1:maxV);
-                    transmission.('transR') = transR(1:maxV);
-
-                    %transmission.('aseq_loc') = transAseq_loc(1:maxV);
-                    %transmission.('aseq_mut') = transAseq_mut(1:maxV);
+                    transmission.('transD') = trans_d(:, 1:max_V);
+                    transmission.('transR') = trans_r(1:max_V);
                 end % if transmission
                 
             end % while loop
